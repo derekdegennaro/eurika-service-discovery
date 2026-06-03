@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: dev
+        type: choice
+        options: [dev, prod]
+      image_tag:
+        description: Image tag to deploy (default: latest sha on main)
+        required: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'dev' }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve deploy parameters
+        id: params
+        run: |
+          ENV="${{ github.event.inputs.environment || 'dev' }}"
+          TAG="${{ github.event.inputs.image_tag || format('sha-{0}', github.event.workflow_run.head_sha || github.sha) }}"
+          ACCOUNT="${{ secrets.AWS_ACCOUNT_ID }}"
+          REGION="${{ env.AWS_REGION }}"
+
+          # Dev and prod each have their own ECR repo
+          IMAGE_URI="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/eurika-${ENV}-service-discovery:${TAG}"
+
+          echo "environment=${ENV}"       >> $GITHUB_OUTPUT
+          echo "image_uri=${IMAGE_URI}"   >> $GITHUB_OUTPUT
+          echo "tf_dir=terraform/environments/${ENV}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.6"
+
+      - name: Terraform Init
+        working-directory: ${{ steps.params.outputs.tf_dir }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ steps.params.outputs.tf_dir }}
+        env:
+          TF_VAR_image_uri: ${{ steps.params.outputs.image_uri }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ${{ steps.params.outputs.tf_dir }}
+        env:
+          TF_VAR_image_uri: ${{ steps.params.outputs.image_uri }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Print Eureka URL
+        working-directory: ${{ steps.params.outputs.tf_dir }}
+        run: terraform output eureka_url

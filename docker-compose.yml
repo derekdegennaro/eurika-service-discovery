@@ -1,0 +1,61 @@
+services:
+  eureka1:
+    build: .
+    hostname: eureka1
+    environment:
+      EUREKA_HOSTNAME: eureka1
+      EUREKA_SERVICE_URL: http://eureka2:8761/eureka/,http://eureka3:8761/eureka/
+      EUREKA_SELF_PRESERVATION: "false"
+    ports:
+      - "8761:8761"
+    networks:
+      - eureka-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  eureka2:
+    build: .
+    hostname: eureka2
+    environment:
+      EUREKA_HOSTNAME: eureka2
+      EUREKA_SERVICE_URL: http://eureka1:8761/eureka/,http://eureka3:8761/eureka/
+      EUREKA_SELF_PRESERVATION: "false"
+    ports:
+      - "8762:8761"
+    networks:
+      - eureka-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  eureka3:
+    build: .
+    hostname: eureka3
+    environment:
+      EUREKA_HOSTNAME: eureka3
+      EUREKA_SERVICE_URL: http://eureka1:8761/eureka/,http://eureka2:8761/eureka/
+      EUREKA_SELF_PRESERVATION: "false"
+    ports:
+      - "8763:8761"
+    networks:
+      - eureka-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+networks:
+  eureka-net:
+    driver: bridge
