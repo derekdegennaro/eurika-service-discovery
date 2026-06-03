@@ -14,7 +14,7 @@ on:
         type: choice
         options: [dev, prod]
       image_tag:
-        description: Image tag to deploy (default: latest sha on main)
+        description: "Image tag to deploy (default: latest sha on main)"
         required: false
 
 env:
