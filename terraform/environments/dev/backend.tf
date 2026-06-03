@@ -8,12 +8,5 @@ terraform {
     }
   }
 
-  backend "s3" {
-    # Replace these values with your S3 bucket and DynamoDB table
-    bucket         = "your-terraform-state-bucket"
-    key            = "eurika-service-discovery/dev/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "your-terraform-locks-table"
-    encrypt        = true
-  }
+  backend "s3" {}
 }

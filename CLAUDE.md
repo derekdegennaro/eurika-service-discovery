@@ -219,7 +219,7 @@ Environments (`dev`, `prod`) each have their own `terraform.tfvars` and remote s
 - **deploy.yml** — triggers on push to `main` (after build): runs `terraform apply` and forces a new ECS task deployment
 
 Required GitHub Actions secrets:
-- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — IAM credentials with ECS, ECR, and Terraform state permissions
+- `AWS_ROLE_ARN` — ARN of the IAM role to assume via OIDC (e.g. `arn:aws:iam::123456789012:role/github-actions-eurika`)
 - `AWS_ACCOUNT_ID`
 - `AWS_REGION`
 - `TF_STATE_BUCKET` — S3 bucket name for Terraform remote state
