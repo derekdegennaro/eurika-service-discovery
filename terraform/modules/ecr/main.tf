@@ -1,4 +1,6 @@
 resource "aws_ecr_repository" "main" {
+  count = var.create_repository ? 1 : 0
+
   name                 = "${var.name_prefix}-${var.repository_name}"
   image_tag_mutability = var.image_tag_mutability
 
@@ -9,8 +11,14 @@ resource "aws_ecr_repository" "main" {
   tags = var.tags
 }
 
+locals {
+  ecr_repository_name = var.create_repository ? aws_ecr_repository.main[0].name : "${var.name_prefix}-${var.repository_name}"
+}
+
 resource "aws_ecr_lifecycle_policy" "main" {
-  repository = aws_ecr_repository.main.name
+  depends_on = var.create_repository ? [aws_ecr_repository.main] : []
+
+  repository = local.ecr_repository_name
 
   policy = jsonencode({
     rules = [

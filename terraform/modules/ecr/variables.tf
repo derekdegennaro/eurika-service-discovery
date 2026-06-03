@@ -19,3 +19,10 @@ variable "tags" {
   description = "Tags applied to all resources"
   default     = {}
 }
+
+variable "create_repository" {
+  type        = bool
+  description = "Whether to create the ECR repository (true in dev, false in prod)"
+  default     = false
+}
+
