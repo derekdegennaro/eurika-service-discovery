@@ -33,6 +33,10 @@ jobs:
       - name: Run tests
         run: mvn verify -q
 
+      - name: Mask AWS account ID
+        if: github.ref == 'refs/heads/main'
+        run: echo "::add-mask::${{ secrets.AWS_ACCOUNT_ID }}"
+
       - name: Configure AWS credentials
         if: github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@v4
