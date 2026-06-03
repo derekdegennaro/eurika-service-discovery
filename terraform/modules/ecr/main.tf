@@ -16,7 +16,9 @@ locals {
 }
 
 resource "aws_ecr_lifecycle_policy" "main" {
-  depends_on = var.create_repository ? [aws_ecr_repository.main] : []
+  count = var.create_repository ? 1 : 0
+
+  depends_on = [aws_ecr_repository.main]
 
   repository = local.ecr_repository_name
 
