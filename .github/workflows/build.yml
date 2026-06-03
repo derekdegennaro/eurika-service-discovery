@@ -45,6 +45,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Ensure ECR repository exists
+        if: github.ref == 'refs/heads/main'
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPOSITORY \
+            || aws ecr create-repository --repository-name $ECR_REPOSITORY
+
       - name: Build and push image
         if: github.ref == 'refs/heads/main'
         env:
