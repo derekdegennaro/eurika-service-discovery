@@ -212,7 +212,7 @@ resource "aws_ecs_service" "eureka" {
   network_configuration {
     subnets          = var.task_subnets
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = var.assign_public_ip ? "ENABLED" : "DISABLED"
+    assign_public_ip = var.assign_public_ip
   }
 
   load_balancer {
