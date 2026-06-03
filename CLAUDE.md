@@ -6,6 +6,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Eureka Service Discovery cluster running on AWS ECS Fargate, built with Spring Cloud Netflix Eureka (Java/Spring Boot), deployed via Terraform and GitHub Actions.
 
+## GitHub Repository
+
+**URL:** https://github.com/derekdegennaro/eurika-service-discovery (private)
+
+The repository was created and published on 2026-06-02 using the GitHub CLI (`gh`):
+
+```bash
+# Install gh CLI
+brew install gh
+
+# Authenticate (requires workflow scope to push GitHub Actions files)
+gh auth login                                  # initial login
+gh auth refresh -h github.com --scopes workflow  # add workflow scope
+
+# Wire gh as git credential helper
+gh auth setup-git
+
+# Create private repo from local git repo and push
+gh repo create eurika-service-discovery \
+  --private \
+  --description "Eureka service discovery cluster on AWS ECS Fargate — Spring Boot, Terraform, GitHub Actions" \
+  --source . \
+  --remote origin \
+  --push
+```
+
+The `workflow` scope is required because the repo contains `.github/workflows/` files. Without it GitHub rejects the push.
+
 ## Repository Structure
 
 ```
