@@ -67,19 +67,24 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ steps.params.outputs.tf_dir }}
-        run: terraform init
+        run: |
+          terraform init \
+            -input=false \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=eurika-${{ steps.params.outputs.environment }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform Plan
         working-directory: ${{ steps.params.outputs.tf_dir }}
         env:
           TF_VAR_image_uri: ${{ steps.params.outputs.image_uri }}
-        run: terraform plan -out=tfplan
+        run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
         working-directory: ${{ steps.params.outputs.tf_dir }}
         env:
           TF_VAR_image_uri: ${{ steps.params.outputs.image_uri }}
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -input=false -auto-approve tfplan
 
       - name: Print Eureka URL
         working-directory: ${{ steps.params.outputs.tf_dir }}
