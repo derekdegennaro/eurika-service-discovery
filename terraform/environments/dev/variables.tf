@@ -32,3 +32,8 @@ variable "desired_count" {
   type    = number
   default = 2
 }
+
+variable "alb_allowed_cidr_blocks" {
+  type        = list(string)
+  description = "CIDR blocks allowed to reach the ALB. Set via TF_VAR_alb_allowed_cidr_blocks in CI/CD."
+}

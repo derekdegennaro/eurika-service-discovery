@@ -45,6 +45,7 @@ module "ecs" {
   desired_count            = var.desired_count
   enable_self_preservation = false
   alb_internal             = false
+  alb_allowed_cidr_blocks  = var.alb_allowed_cidr_blocks
   log_retention_days       = 7
   tags                     = local.tags
 }

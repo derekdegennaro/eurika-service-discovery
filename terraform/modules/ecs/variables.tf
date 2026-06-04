@@ -70,6 +70,11 @@ variable "alb_internal" {
   default     = false
 }
 
+variable "alb_allowed_cidr_blocks" {
+  type        = list(string)
+  description = "CIDR blocks allowed to reach the ALB on port 80"
+}
+
 variable "log_retention_days" {
   type        = number
   description = "CloudWatch log retention in days"
