@@ -20,3 +20,5 @@ terraform/environments/**/.terraform.lock.hcl
 # OS
 .DS_Store
 Thumbs.db
+
+tmp/
