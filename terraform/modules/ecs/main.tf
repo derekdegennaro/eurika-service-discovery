@@ -114,7 +114,8 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "eureka" {
-  name        = "${var.name_prefix}-tg"
+  count       = 2
+  name        = "${var.name_prefix}-tg-${count.index}"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -133,19 +134,49 @@ resource "aws_lb_target_group" "eureka" {
   tags = var.tags
 }
 
+# Default action distributes evenly across both services (handles service-registry.eurika.internal)
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
+    type = "forward"
+
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.eureka[0].arn
+        weight = 1
+      }
+      target_group {
+        arn    = aws_lb_target_group.eureka[1].arn
+        weight = 1
+      }
+    }
+  }
+}
+
+# Host-header rules route service-registry-{0,1}.eurika.internal to their dedicated target group
+resource "aws_lb_listener_rule" "eureka" {
+  count        = 2
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 10 + count.index
+
+  action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.eureka.arn
+    target_group_arn = aws_lb_target_group.eureka[count.index].arn
+  }
+
+  condition {
+    host_header {
+      values = ["service-registry-${count.index}.${var.private_zone_name}"]
+    }
   }
 }
 
 resource "aws_ecs_task_definition" "eureka" {
-  family                   = var.name_prefix
+  count                    = 2
+  family                   = "${var.name_prefix}-task-${count.index}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.task_cpu
@@ -165,11 +196,11 @@ resource "aws_ecs_task_definition" "eureka" {
     environment = [
       {
         name  = "EUREKA_HOSTNAME"
-        value = aws_lb.main.dns_name
+        value = var.eureka_config[count.index].eureka_instance_hostname
       },
       {
         name  = "EUREKA_SERVICE_URL"
-        value = "http://${aws_lb.main.dns_name}/eureka/"
+        value = var.eureka_config[count.index].eureka_service_url
       },
       {
         name  = "EUREKA_SELF_PRESERVATION"
@@ -202,21 +233,23 @@ resource "aws_ecs_task_definition" "eureka" {
   tags = var.tags
 }
 
+# Two services, each pinned to one AZ via a single subnet, each backed by its own target group
 resource "aws_ecs_service" "eureka" {
-  name            = "${var.name_prefix}-service"
+  count           = 2
+  name            = "${var.name_prefix}-service-${count.index}"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.eureka.arn
-  desired_count   = var.desired_count
+  task_definition = aws_ecs_task_definition.eureka[count.index].arn
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = var.task_subnets
+    subnets          = [var.task_subnets[count.index]]
     security_groups  = [aws_security_group.ecs_tasks.id]
     assign_public_ip = var.assign_public_ip
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.eureka.arn
+    target_group_arn = aws_lb_target_group.eureka[count.index].arn
     container_name   = "eureka-server"
     container_port   = var.container_port
   }
@@ -228,4 +261,23 @@ resource "aws_ecs_service" "eureka" {
   depends_on = [aws_lb_listener.http]
 
   tags = var.tags
+}
+
+# service-registry-{0,1}.eurika.internal → dedicated target group via ALB host-header rule
+resource "aws_route53_record" "eureka_service" {
+  count   = 2
+  zone_id = var.private_zone_id
+  name    = "service-registry-${count.index}"
+  type    = "CNAME"
+  ttl     = 60
+  records = [aws_lb.main.dns_name]
+}
+
+# service-registry.eurika.internal → weighted default action across both target groups
+resource "aws_route53_record" "eureka_shared" {
+  zone_id = var.private_zone_id
+  name    = "service-registry"
+  type    = "CNAME"
+  ttl     = 60
+  records = [aws_lb.main.dns_name]
 }

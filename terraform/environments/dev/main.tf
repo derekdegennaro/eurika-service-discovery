@@ -42,10 +42,21 @@ module "ecs" {
   image_uri                = var.image_uri
   task_cpu                 = var.task_cpu
   task_memory              = var.task_memory
-  desired_count            = var.desired_count
   enable_self_preservation = false
   alb_internal             = false
   alb_allowed_cidr_blocks  = var.alb_allowed_cidr_blocks
+  private_zone_id          = module.networking.private_zone_id
+  private_zone_name        = module.networking.private_zone_name
+  eureka_config = [
+    {
+      eureka_instance_hostname = "service-registry-0.${module.networking.private_zone_name}"
+      eureka_service_url       = "http://service-registry-1.${module.networking.private_zone_name}/eureka/"
+    },
+    {
+      eureka_instance_hostname = "service-registry-1.${module.networking.private_zone_name}"
+      eureka_service_url       = "http://service-registry-0.${module.networking.private_zone_name}/eureka/"
+    }
+  ]
   log_retention_days       = 7
   tags                     = local.tags
 }

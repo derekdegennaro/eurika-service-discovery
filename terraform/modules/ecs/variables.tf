@@ -52,16 +52,28 @@ variable "task_memory" {
   default     = 1024
 }
 
-variable "desired_count" {
-  type        = number
-  description = "Number of Eureka server tasks to run"
-  default     = 2
-}
-
 variable "enable_self_preservation" {
   type        = bool
   description = "Enable Eureka self-preservation mode (disable in dev, enable in prod)"
   default     = false
+}
+
+# variable "eureka_service_url" {
+#   type        = string
+#   description = "Eureka service URL (comma separated list) for peer replication (e.g. http://service-registry-{0,1}.eurika.internal/eureka/)"
+# }
+
+# variable "eureka_instance_hostname" {
+#   type        = string
+#   description = "Eureka instance hostname (e.g. service-registry-0.eurika.internal)"
+# }
+
+variable "eureka_config" {
+  type = list(object({
+    eureka_service_url       = string
+    eureka_instance_hostname = string
+  }))
+  description = "List of Eureka configuration objects for each instance (used for peer replication)"
 }
 
 variable "alb_internal" {
@@ -73,6 +85,16 @@ variable "alb_internal" {
 variable "alb_allowed_cidr_blocks" {
   type        = list(string)
   description = "CIDR blocks allowed to reach the ALB on port 80"
+}
+
+variable "private_zone_id" {
+  type        = string
+  description = "Route53 private hosted zone ID for creating Eureka DNS records"
+}
+
+variable "private_zone_name" {
+  type        = string
+  description = "Route53 private hosted zone domain name (e.g. eurika.internal)"
 }
 
 variable "log_retention_days" {
