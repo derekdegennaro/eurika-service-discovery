@@ -82,11 +82,20 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
-  # Peer replication between Eureka tasks
+  # Peer replication between Eureka tasks on container port
   ingress {
     description = "Eureka peer replication"
     from_port   = var.container_port
     to_port     = var.container_port
+    protocol    = "tcp"
+    self        = true
+  }
+
+  # Peer communication between ECS services via port 80
+  ingress {
+    description = "Inter-node cluster communication"
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     self        = true
   }
