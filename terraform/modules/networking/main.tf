@@ -71,3 +71,13 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
 }
+
+resource "aws_route53_zone" "private" {
+  name = var.private_zone_name
+
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
+
+  tags = merge(var.tags, { Name = "${var.name_prefix}-private-zone" })
+}

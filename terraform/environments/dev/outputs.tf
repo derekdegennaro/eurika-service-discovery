@@ -20,3 +20,13 @@ output "ecs_cluster_name" {
 output "ecs_service_name" {
   value = module.ecs.service_name
 }
+
+output "private_zone_id" {
+  value       = module.networking.private_zone_id
+  description = "Route53 private hosted zone ID"
+}
+
+output "private_zone_name" {
+  value       = module.networking.private_zone_name
+  description = "Route53 private hosted zone domain name"
+}

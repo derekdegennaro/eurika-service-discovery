@@ -20,6 +20,12 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+variable "private_zone_name" {
+  type        = string
+  description = "Domain name for the Route53 private hosted zone"
+  default     = "eurika.internal"
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to all resources"
