@@ -192,6 +192,56 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8761/eureka/apps
 curl -s -H "Accept: application/json" http://localhost:8762/eureka/apps/MY-SERVICE | jq .
 ```
 
+## ECS Exec (Remote Shell Access)
+
+ECS Exec uses AWS Systems Manager Session Manager to open an interactive shell inside a running Fargate task. No SSH or bastion host required.
+
+**Prerequisites — install the Session Manager Plugin once:**
+```bash
+brew install --cask session-manager-plugin
+```
+
+**Find the task ID for a service:**
+```bash
+# Service 0 (AZ 0)
+aws ecs list-tasks \
+  --cluster eurika-dev \
+  --service-name eurika-dev-service-0 \
+  --region us-east-1 \
+  --query 'taskArns[0]' --output text
+
+# Service 1 (AZ 1)
+aws ecs list-tasks \
+  --cluster eurika-dev \
+  --service-name eurika-dev-service-1 \
+  --region us-east-1 \
+  --query 'taskArns[0]' --output text
+```
+
+**Open an interactive shell:**
+```bash
+aws ecs execute-command \
+  --cluster eurika-dev \
+  --task <task-id> \
+  --container eureka-server \
+  --interactive \
+  --command "/bin/sh" \
+  --region us-east-1
+```
+
+**One-liner — exec directly into service 0:**
+```bash
+aws ecs execute-command \
+  --cluster eurika-dev \
+  --task $(aws ecs list-tasks --cluster eurika-dev --service-name eurika-dev-service-0 --region us-east-1 --query 'taskArns[0]' --output text) \
+  --container eureka-server \
+  --interactive \
+  --command "/bin/sh" \
+  --region us-east-1
+```
+
+Replace `eurika-dev` with `eurika-prod` and `us-east-1` with your region for prod. ECS Exec session activity is logged to the `/ecs/eurika-{env}` CloudWatch log group.
+
 ## Terraform
 
 All infrastructure lives in `terraform/`. State is stored in S3 with DynamoDB locking.

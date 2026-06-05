@@ -14,6 +14,15 @@ resource "aws_ecs_cluster" "main" {
     value = "enabled"
   }
 
+  configuration {
+    execute_command_configuration {
+      logging = "OVERRIDE"
+      log_configuration {
+        cloud_watch_log_group_name = aws_cloudwatch_log_group.eureka.name
+      }
+    }
+  }
+
   tags = var.tags
 }
 
@@ -45,6 +54,52 @@ resource "aws_iam_role" "task_execution" {
 resource "aws_iam_role_policy_attachment" "task_execution" {
   role       = aws_iam_role.task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role" "task" {
+  name = "${var.name_prefix}-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "task_exec_command" {
+  name = "${var.name_prefix}-exec-command"
+  role = aws_iam_role.task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.eureka.arn}:*"
+      }
+    ]
+  })
 }
 
 resource "aws_security_group" "alb" {
@@ -203,6 +258,7 @@ resource "aws_ecs_task_definition" "eureka" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
     name      = "eureka-server"
@@ -274,6 +330,8 @@ resource "aws_ecs_service" "eureka" {
     container_name   = "eureka-server"
     container_port   = var.container_port
   }
+
+  enable_execute_command = true
 
   health_check_grace_period_seconds  = 90
   deployment_minimum_healthy_percent = var.environment == "prod" ? 100 : 50
