@@ -14,7 +14,6 @@ on:
         required: true
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   destroy:
@@ -29,19 +28,22 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Mask AWS account ID
         run: echo "::add-mask::${{ secrets.AWS_ACCOUNT_ID }}"
 
+      - name: Mask allowed IP
+        run: echo "::add-mask::${{ secrets.MY_IP_CIDR }}"
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "~1.6"
 
@@ -58,4 +60,5 @@ jobs:
         working-directory: terraform/environments/${{ github.event.inputs.environment }}
         env:
           TF_VAR_image_uri: ''
+          TF_VAR_alb_allowed_cidr_blocks: '["${{ secrets.MY_IP_CIDR }}"]'
         run: terraform destroy -input=false -auto-approve
