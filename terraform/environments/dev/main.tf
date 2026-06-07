@@ -43,7 +43,7 @@ module "ecs" {
   task_cpu                 = var.task_cpu
   task_memory              = var.task_memory
   enable_self_preservation = false
-  alb_internal             = false
+  alb_internal             = true
   alb_allowed_cidr_blocks  = var.alb_allowed_cidr_blocks
   private_zone_id          = module.networking.private_zone_id
   private_zone_name        = module.networking.private_zone_name
